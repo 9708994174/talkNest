@@ -18,16 +18,12 @@ export async function GET(request: NextRequest, { params }: { params: { userId: 
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    let subscriptionData: {
-      plan: string
-      status: string
-      nextBillingDate: Date | null
-      cancelAtPeriodEnd: boolean
-    } = {
+    let subscriptionData = {
       plan: user.subscription || "free",
       status: "active",
-      nextBillingDate: null,
+      nextBillingDate: null as Date | null,
       cancelAtPeriodEnd: false,
+      currentPeriodEnd: null as Date | null,
     }
 
     // If user has a Stripe customer ID, get subscription details
@@ -45,7 +41,8 @@ export async function GET(request: NextRequest, { params }: { params: { userId: 
             plan: user.subscription || "free",
             status: subscription.status,
             nextBillingDate: new Date(subscription.current_period_end * 1000),
-            cancelAtPeriodEnd: subscription.cancel_at_period_end,
+            cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+            currentPeriodEnd: new Date(subscription.current_period_end * 1000),
           }
         }
       } catch (stripeError) {

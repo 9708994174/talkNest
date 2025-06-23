@@ -26,6 +26,8 @@ export function SubscriptionManager({ userId, currentPlan, onPlanChange }: Subsc
       if (response.ok) {
         const data = await response.json()
         setSubscriptionData(data)
+      } else {
+        console.error("Failed to fetch subscription data")
       }
     } catch (error) {
       console.error("Error fetching subscription data:", error)
@@ -57,7 +59,12 @@ export function SubscriptionManager({ userId, currentPlan, onPlanChange }: Subsc
   }
 
   const handleCancelSubscription = async () => {
-    if (!confirm("Are you sure you want to cancel your subscription?")) return
+    if (
+      !confirm(
+        "Are you sure you want to cancel your subscription? You'll continue to have access until the end of your current billing period.",
+      )
+    )
+      return
 
     setLoading(true)
     try {
@@ -66,11 +73,18 @@ export function SubscriptionManager({ userId, currentPlan, onPlanChange }: Subsc
       })
 
       if (response.ok) {
+        const result = await response.json()
+        alert(
+          `Subscription canceled. You'll continue to have access until ${new Date(result.cancelAt).toLocaleDateString()}`,
+        )
         fetchSubscriptionData()
-        onPlanChange?.("free")
+      } else {
+        const errorData = await response.json()
+        alert(errorData.error || "Failed to cancel subscription")
       }
     } catch (error) {
       console.error("Error canceling subscription:", error)
+      alert("Failed to cancel subscription. Please try again.")
     } finally {
       setLoading(false)
     }

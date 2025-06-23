@@ -34,13 +34,26 @@ export async function POST(request: NextRequest, { params }: { params: { userId:
 
     // Cancel the subscription at period end
     const subscription = subscriptions.data[0]
-    await stripe.subscriptions.update(subscription.id, {
+    const updatedSubscription = await stripe.subscriptions.update(subscription.id, {
       cancel_at_period_end: true,
     })
+
+    // Update local database
+    await db.collection("subscriptions").updateOne(
+      { userId: userId },
+      {
+        $set: {
+          cancelAtPeriodEnd: true,
+          cancelAt: new Date(updatedSubscription.current_period_end * 1000),
+          updatedAt: new Date(),
+        },
+      },
+    )
 
     return NextResponse.json({
       success: true,
       message: "Subscription will be canceled at the end of the current billing period",
+      cancelAt: new Date(updatedSubscription.current_period_end * 1000),
     })
   } catch (error) {
     console.error("Error canceling subscription:", error)
