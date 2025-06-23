@@ -3,6 +3,7 @@ import clientPromise from "@/lib/mongodb"
 import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
 
+
 if (!process.env.JWT_SECRET) {
   throw new Error("Missing JWT_SECRET environment variable")
 }
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const db = client.db("talknest")
+    const db = client.db("abc")
 
     // Find user
     const user = await db.collection("users").findOne({ email })
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
         email,
         iat: Math.floor(Date.now() / 1000),
       },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET as string,
       { expiresIn: "7d" },
     )
 

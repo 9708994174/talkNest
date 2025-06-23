@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
         email,
         iat: Math.floor(Date.now() / 1000),
       },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET as string,
       { expiresIn: "7d" },
     )
 

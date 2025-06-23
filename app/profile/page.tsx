@@ -1,90 +1,34 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  ArrowLeft,
-  MapPin,
-  Calendar,
-  Star,
-  Heart,
-  MessageCircle,
-  Coffee,
-  Shield,
-  Edit,
-  Camera,
-  Award,
-  TrendingUp,
-} from "lucide-react"
-import { useRouter } from "next/navigation"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { SubscriptionManager } from "@/components/subscription-manager"
+import { ArrowLeft, Heart, Edit, Save, MapPin, Mail, Calendar, Shield, Crown, Star, Camera } from "lucide-react"
 
 export default function ProfilePage() {
   const router = useRouter()
   const [currentUser, setCurrentUser] = useState<any>(null)
-
-  // Mock profile data
-  const profileStats = {
-    totalChats: 47,
-    meetupsCompleted: 12,
-    helpfulRating: 4.8,
-    joinedDate: "March 2024",
-    verificationStatus: "verified",
-  }
-
-  const recentActivity = [
-    {
-      type: "meetup",
-      description: "Had a supportive coffee chat with Sarah",
-      date: "2 days ago",
-      rating: 5,
-    },
-    {
-      type: "chat",
-      description: "Provided emotional support to Alex",
-      date: "1 week ago",
-      rating: 4.5,
-    },
-    {
-      type: "meetup",
-      description: "Park walk with Michael for stress relief",
-      date: "2 weeks ago",
-      rating: 5,
-    },
-  ]
-
-  const achievements = [
-    {
-      title: "Good Listener",
-      description: "Completed 10+ supportive conversations",
-      icon: <MessageCircle className="h-6 w-6 text-blue-600" />,
-      earned: true,
-    },
-    {
-      title: "Meetup Master",
-      description: "Successfully completed 10+ meetups",
-      icon: <Coffee className="h-6 w-6 text-green-600" />,
-      earned: true,
-    },
-    {
-      title: "Trusted Helper",
-      description: "Maintained 4.5+ star rating",
-      icon: <Star className="h-6 w-6 text-yellow-600" />,
-      earned: true,
-    },
-    {
-      title: "Community Builder",
-      description: "Helped 50+ community members",
-      icon: <Heart className="h-6 w-6 text-red-600" />,
-      earned: false,
-    },
-  ]
+  const [isEditing, setIsEditing] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    bio: "",
+    interests: [],
+    currentMood: "",
+    location: "",
+  })
 
   useEffect(() => {
-    // Check authentication
     const token = localStorage.getItem("talknest_token")
     const user = localStorage.getItem("talknest_user")
 
@@ -93,260 +37,314 @@ export default function ProfilePage() {
       return
     }
 
-    setCurrentUser(JSON.parse(user))
+    try {
+      const userData = JSON.parse(user)
+      setCurrentUser(userData)
+      setFormData({
+        firstName: userData.firstName || "",
+        lastName: userData.lastName || "",
+        email: userData.email || "",
+        phone: userData.phone || "",
+        bio: userData.bio || "",
+        interests: userData.interests || [],
+        currentMood: userData.currentMood || "",
+        location: userData.location || "",
+      })
+    } catch (error) {
+      console.error("Error parsing user data:", error)
+      router.push("/auth")
+    }
   }, [router])
+
+  const handleSave = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch("/api/users/profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("talknest_token")}`,
+        },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          ...formData,
+        }),
+      })
+
+      if (response.ok) {
+        const updatedUser = await response.json()
+        setCurrentUser(updatedUser.user)
+        localStorage.setItem("talknest_user", JSON.stringify(updatedUser.user))
+        setIsEditing(false)
+      } else {
+        throw new Error("Failed to update profile")
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error)
+      alert("Failed to update profile. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
+  }
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p>Loading profile...</p>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push("/dashboard")}
-                className="text-purple-600 hover:text-purple-700"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-              <h1 className="text-2xl font-bold text-gray-800">My Profile</h1>
-            </div>
-            <Button onClick={() => router.push("/settings")} className="bg-purple-600 hover:bg-purple-700 text-white">
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Profile
+      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 p-4 md:p-6 shadow-sm">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Button variant="ghost" onClick={() => router.push("/dashboard")} className="hover:bg-purple-100">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Dashboard
             </Button>
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center shadow-lg">
+                <Heart className="h-5 w-5 text-white" />
+              </div>
+              <span className="text-xl font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                My Profile
+              </span>
+            </div>
           </div>
+          <Button
+            onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
+            disabled={loading}
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+          >
+            {loading ? (
+              "Saving..."
+            ) : isEditing ? (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Save Changes
+              </>
+            ) : (
+              <>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Profile
+              </>
+            )}
+          </Button>
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
         {/* Profile Header */}
-        <Card className="border-0 shadow-lg bg-white mb-8">
-          <CardContent className="p-8">
-            <div className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
+        <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-6">
               <div className="relative">
-                <Avatar className="w-32 h-32">
-                  <AvatarImage src="/placeholder.svg?height=128&width=128" />
-                  <AvatarFallback className="bg-purple-500 text-white text-3xl">
+                <Avatar className="w-24 h-24 ring-4 ring-purple-200 shadow-lg">
+                  <AvatarImage
+                    src={
+                      currentUser.profilePicture ||
+                      `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.firstName || "/placeholder.svg"}`
+                    }
+                  />
+                  <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-2xl">
                     {currentUser.firstName?.[0]}
                     {currentUser.lastName?.[0]}
                   </AvatarFallback>
                 </Avatar>
-                <Button
-                  size="sm"
-                  className="absolute -bottom-2 -right-2 rounded-full w-10 h-10 p-0 bg-purple-600 hover:bg-purple-700"
-                >
-                  <Camera className="h-4 w-4" />
-                </Button>
+                {isEditing && (
+                  <Button
+                    size="sm"
+                    className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0 bg-purple-600 hover:bg-purple-700"
+                  >
+                    <Camera className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
-
-              <div className="flex-1 text-center md:text-left">
-                <div className="flex flex-col md:flex-row md:items-center md:space-x-4 mb-4">
-                  <h2 className="text-3xl font-bold text-gray-800">
+              <div className="flex-1">
+                <div className="flex items-center space-x-3 mb-2">
+                  <h1 className="text-2xl font-bold text-gray-800">
                     {currentUser.firstName} {currentUser.lastName}
-                  </h2>
-                  <div className="flex items-center justify-center md:justify-start space-x-2 mt-2 md:mt-0">
-                    <Badge className="bg-green-100 text-green-700">{currentUser.mood || "Seeking Support"}</Badge>
-                    {profileStats.verificationStatus === "verified" && (
-                      <Badge className="bg-blue-100 text-blue-700 flex items-center space-x-1">
-                        <Shield className="h-3 w-3" />
-                        <span>Verified</span>
-                      </Badge>
-                    )}
+                  </h1>
+                  {currentUser.subscription !== "free" && (
+                    <Badge
+                      className={`${currentUser.subscription === "premium" ? "bg-gradient-to-r from-purple-500 to-pink-500" : "bg-gradient-to-r from-yellow-500 to-orange-500"} text-white`}
+                    >
+                      <Crown className="h-3 w-3 mr-1" />
+                      {currentUser.subscription === "premium" ? "Premium" : "Professional"}
+                    </Badge>
+                  )}
+                  {currentUser.verificationStatus === "verified" && (
+                    <Badge className="bg-blue-100 text-blue-700 border-blue-300">
+                      <Shield className="h-3 w-3 mr-1" />
+                      Verified
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex items-center space-x-4 text-gray-600 mb-3">
+                  <div className="flex items-center">
+                    <Mail className="h-4 w-4 mr-1" />
+                    <span className="text-sm">{currentUser.email}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Calendar className="h-4 w-4 mr-1" />
+                    <span className="text-sm">Joined {new Date(currentUser.createdAt).toLocaleDateString()}</span>
                   </div>
                 </div>
-
-                <div className="flex items-center justify-center md:justify-start space-x-4 text-gray-600 mb-4">
-                  <div className="flex items-center space-x-1">
-                    <MapPin className="h-4 w-4" />
-                    <span>San Francisco, CA</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <Calendar className="h-4 w-4" />
-                    <span>Joined {profileStats.joinedDate}</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <Star className="h-4 w-4 text-yellow-500" />
-                    <span>{profileStats.helpfulRating}/5.0</span>
-                  </div>
-                </div>
-
-                <p className="text-gray-600 mb-6 max-w-2xl">
-                  {currentUser.bio ||
-                    "Looking for emotional support and meaningful connections. I believe in the power of listening and being there for each other during difficult times."}
-                </p>
-
-                {/* Stats */}
-                <div className="grid grid-cols-3 gap-6">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-600">{profileStats.totalChats}</div>
-                    <div className="text-sm text-gray-500">Conversations</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">{profileStats.meetupsCompleted}</div>
-                    <div className="text-sm text-gray-500">Meetups</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-yellow-600">{profileStats.helpfulRating}</div>
-                    <div className="text-sm text-gray-500">Rating</div>
-                  </div>
+                <div className="flex items-center space-x-2">
+                  <Star className="h-4 w-4 text-yellow-500 fill-current" />
+                  <span className="text-sm font-medium">{currentUser.helpfulRating || "5.0"} rating</span>
+                  <span className="text-sm text-gray-500">• {currentUser.totalSessions || 0} sessions</span>
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Profile Tabs */}
-        <Tabs defaultValue="activity" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
-            <TabsTrigger value="activity" className="flex items-center space-x-2">
-              <TrendingUp className="h-4 w-4" />
-              <span>Activity</span>
-            </TabsTrigger>
-            <TabsTrigger value="achievements" className="flex items-center space-x-2">
-              <Award className="h-4 w-4" />
-              <span>Achievements</span>
-            </TabsTrigger>
-            <TabsTrigger value="interests" className="flex items-center space-x-2">
-              <Heart className="h-4 w-4" />
-              <span>Interests</span>
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="activity" className="space-y-6">
-            <Card className="border-0 shadow-lg bg-white">
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {recentActivity.length === 0 ? (
-                  <div className="text-center py-8">
-                    <TrendingUp className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-600 mb-2">No recent activity</h3>
-                    <p className="text-gray-500">Start chatting or schedule a meetup to see your activity here</p>
-                  </div>
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Personal Information */}
+          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle>Personal Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="firstName">First Name</Label>
+                  {isEditing ? (
+                    <Input
+                      id="firstName"
+                      value={formData.firstName}
+                      onChange={(e) => handleInputChange("firstName", e.target.value)}
+                    />
+                  ) : (
+                    <p className="mt-1 text-gray-800">{currentUser.firstName}</p>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="lastName">Last Name</Label>
+                  {isEditing ? (
+                    <Input
+                      id="lastName"
+                      value={formData.lastName}
+                      onChange={(e) => handleInputChange("lastName", e.target.value)}
+                    />
+                  ) : (
+                    <p className="mt-1 text-gray-800">{currentUser.lastName}</p>
+                  )}
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="email">Email</Label>
+                {isEditing ? (
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
+                  />
                 ) : (
-                  <div className="space-y-4">
-                    {recentActivity.map((activity, index) => (
-                      <div key={index} className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
-                        <div
-                          className={`p-2 rounded-full ${activity.type === "meetup" ? "bg-green-100" : "bg-blue-100"}`}
-                        >
-                          {activity.type === "meetup" ? (
-                            <Coffee className="h-5 w-5 text-green-600" />
-                          ) : (
-                            <MessageCircle className="h-5 w-5 text-blue-600" />
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-gray-800">{activity.description}</p>
-                          <div className="flex items-center space-x-4 mt-2">
-                            <span className="text-sm text-gray-500">{activity.date}</span>
-                            <div className="flex items-center space-x-1">
-                              <Star className="h-4 w-4 text-yellow-500" />
-                              <span className="text-sm text-gray-600">{activity.rating}/5</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                  <p className="mt-1 text-gray-800">{currentUser.email}</p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="phone">Phone</Label>
+                {isEditing ? (
+                  <Input
+                    id="phone"
+                    value={formData.phone}
+                    onChange={(e) => handleInputChange("phone", e.target.value)}
+                  />
+                ) : (
+                  <p className="mt-1 text-gray-800">{currentUser.phone || "Not provided"}</p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="bio">Bio</Label>
+                {isEditing ? (
+                  <Textarea
+                    id="bio"
+                    value={formData.bio}
+                    onChange={(e) => handleInputChange("bio", e.target.value)}
+                    rows={3}
+                  />
+                ) : (
+                  <p className="mt-1 text-gray-800">{currentUser.bio || "No bio provided"}</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Subscription Management */}
+          <SubscriptionManager
+            userId={currentUser.id}
+            currentPlan={currentUser.subscription || "free"}
+            onPlanChange={(newPlan) => {
+              setCurrentUser((prev: any) => ({ ...prev, subscription: newPlan }))
+            }}
+          />
+        </div>
+
+        {/* Current Mood & Preferences */}
+        <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle>Mood & Preferences</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="currentMood">Current Mood</Label>
+                {isEditing ? (
+                  <select
+                    id="currentMood"
+                    value={formData.currentMood}
+                    onChange={(e) => handleInputChange("currentMood", e.target.value)}
+                    className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                  >
+                    <option value="">Select mood</option>
+                    {["Happy", "Calm", "Anxious", "Stressed", "Lonely", "Excited", "Peaceful", "Supportive"].map(
+                      (mood) => (
+                        <option key={mood} value={mood}>
+                          {mood}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                ) : (
+                  <div className="mt-1 flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full"></div>
+                    <span className="text-gray-800">{currentUser.currentMood || "Not set"}</span>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="achievements" className="space-y-6">
-            <Card className="border-0 shadow-lg bg-white">
-              <CardHeader>
-                <CardTitle>Achievements</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-2 gap-6">
-                  {achievements.map((achievement, index) => (
-                    <div
-                      key={index}
-                      className={`p-6 rounded-lg border-2 ${
-                        achievement.earned ? "border-purple-200 bg-purple-50" : "border-gray-200 bg-gray-50 opacity-60"
-                      }`}
-                    >
-                      <div className="flex items-start space-x-4">
-                        <div className={`p-3 rounded-full ${achievement.earned ? "bg-white" : "bg-gray-200"}`}>
-                          {achievement.icon}
-                        </div>
-                        <div className="flex-1">
-                          <h3
-                            className={`font-semibold mb-2 ${achievement.earned ? "text-gray-800" : "text-gray-500"}`}
-                          >
-                            {achievement.title}
-                          </h3>
-                          <p className={`text-sm ${achievement.earned ? "text-gray-600" : "text-gray-400"}`}>
-                            {achievement.description}
-                          </p>
-                          {achievement.earned && (
-                            <Badge className="bg-green-100 text-green-700 mt-2">
-                              <Award className="h-3 w-3 mr-1" />
-                              Earned
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="interests" className="space-y-6">
-            <Card className="border-0 shadow-lg bg-white">
-              <CardHeader>
-                <CardTitle>Interests & Topics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {(
-                    currentUser.interests || [
-                      "Mental Health",
-                      "Anxiety Support",
-                      "Stress Management",
-                      "Mindfulness",
-                      "Reading",
-                      "Nature Walks",
-                    ]
-                  ).map((interest: string, index: number) => (
-                    <div
-                      key={index}
-                      className="p-3 bg-purple-50 text-purple-700 rounded-lg text-center text-sm font-medium border border-purple-200"
-                    >
-                      {interest}
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                  <h4 className="font-medium text-blue-800 mb-2">Looking for support with:</h4>
-                  <p className="text-sm text-blue-600">
-                    Work stress, anxiety management, and building meaningful connections with others who understand.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              </div>
+              <div>
+                <Label htmlFor="location">Location</Label>
+                {isEditing ? (
+                  <Input
+                    id="location"
+                    value={formData.location}
+                    onChange={(e) => handleInputChange("location", e.target.value)}
+                    placeholder="City, State"
+                  />
+                ) : (
+                  <div className="mt-1 flex items-center space-x-2">
+                    <MapPin className="h-4 w-4 text-gray-500" />
+                    <span className="text-gray-800">{currentUser.location || "Not provided"}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

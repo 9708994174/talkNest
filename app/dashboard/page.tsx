@@ -1,5 +1,4 @@
 "use client"
-
 export const dynamic = "force-dynamic"
 
 import { useState, useEffect } from "react"
@@ -29,6 +28,11 @@ import {
   Sparkles,
   Menu,
   X,
+  Crown,
+  Lock,
+  CreditCard,
+  TrendingUp,
+  User,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { LiveLocationTracker } from "@/components/live-location-tracker"
@@ -47,6 +51,10 @@ export default function Dashboard() {
   const [activeConversations, setActiveConversations] = useState<any[]>([])
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [subscriptionStatus, setSubscriptionStatus] = useState("free") // free, premium, professional
+  const [subscriptionExpiry, setSubscriptionExpiry] = useState<Date | null>(null)
+  const [dailyMessageCount, setDailyMessageCount] = useState(0)
+  const [monthlyMessageLimit, setMonthlyMessageLimit] = useState(3)
 
   useEffect(() => {
     const checkMobile = () => {
@@ -215,6 +223,12 @@ export default function Dashboard() {
   }
 
   const handleStartChat = async (userId: string) => {
+    // Check message limits for free users
+    if (subscriptionStatus === "free" && dailyMessageCount >= monthlyMessageLimit) {
+      router.push("/pricing")
+      return
+    }
+
     try {
       // Create or get conversation
       const response = await fetch("/api/conversations", {
@@ -229,12 +243,15 @@ export default function Dashboard() {
       if (response.ok) {
         const data = await response.json()
         if (data.success) {
+          // Increment message count for free users
+          if (subscriptionStatus === "free") {
+            setDailyMessageCount((prev) => prev + 1)
+          }
           router.push(`/chat/${userId}`)
         }
       }
     } catch (error) {
       console.error("Error starting chat:", error)
-      // Fallback to direct chat
       router.push(`/chat/${userId}`)
     }
   }
@@ -380,14 +397,24 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Current Mood */}
+            {/* Current Mood & Subscription Status */}
             <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200/50 mb-4 md:mb-6 shadow-sm">
               <CardContent className="p-3 md:p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-medium text-gray-600">CURRENT MOOD</span>
-                  <Button variant="ghost" size="sm" className="text-purple-600 p-0 h-auto hover:bg-purple-100">
-                    <Edit className="h-3 w-3 md:h-4 md:w-4" />
-                  </Button>
+                  <div className="flex items-center space-x-2">
+                    {subscriptionStatus !== "free" && (
+                      <Badge
+                        className={`${subscriptionStatus === "premium" ? "bg-gradient-to-r from-purple-500 to-pink-500" : "bg-gradient-to-r from-yellow-500 to-orange-500"} text-white text-xs`}
+                      >
+                        <Crown className="h-3 w-3 mr-1" />
+                        {subscriptionStatus === "premium" ? "Premium" : "Pro"}
+                      </Badge>
+                    )}
+                    <Button variant="ghost" size="sm" className="text-purple-600 p-0 h-auto hover:bg-purple-100">
+                      <Edit className="h-3 w-3 md:h-4 md:w-4" />
+                    </Button>
+                  </div>
                 </div>
                 <div className="flex items-center space-x-2 mb-3">
                   <div
@@ -397,6 +424,35 @@ export default function Dashboard() {
                     {currentUser.currentMood || "Happy"}
                   </span>
                 </div>
+
+                {/* Message Usage for Free Users */}
+                {subscriptionStatus === "free" && (
+                  <div className="mb-3 p-2 bg-orange-50 rounded-lg border border-orange-200">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-orange-700">Messages Used</span>
+                      <span className="font-semibold text-orange-800">
+                        {dailyMessageCount}/{monthlyMessageLimit}
+                      </span>
+                    </div>
+                    <div className="w-full bg-orange-200 rounded-full h-1.5 mt-1">
+                      <div
+                        className="bg-gradient-to-r from-orange-400 to-orange-500 h-1.5 rounded-full transition-all"
+                        style={{ width: `${(dailyMessageCount / monthlyMessageLimit) * 100}%` }}
+                      ></div>
+                    </div>
+                    {dailyMessageCount >= monthlyMessageLimit && (
+                      <Button
+                        size="sm"
+                        className="w-full mt-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white h-7 text-xs"
+                        onClick={() => router.push("/pricing")}
+                      >
+                        <Crown className="h-3 w-3 mr-1" />
+                        Upgrade for Unlimited
+                      </Button>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2 text-purple-600">
                     <Bell className="h-3 w-3 md:h-4 md:w-4" />
@@ -432,6 +488,19 @@ export default function Dashboard() {
                   <Search className="h-4 w-4 mr-3" />
                   Discover
                   <Sparkles className="h-3 w-3 ml-auto" />
+                </Button>
+              </li>
+              <li>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-gray-600 hover:text-gray-800 hover:bg-gray-100 h-10 md:h-auto text-sm md:text-base"
+                  onClick={() => {
+                    router.push("/profile")
+                    if (isMobile) setSidebarOpen(false)
+                  }}
+                >
+                  <User className="h-4 w-4 mr-3" />
+                  Profile
                 </Button>
               </li>
               <li>
@@ -487,6 +556,34 @@ export default function Dashboard() {
                 >
                   <Settings className="h-4 w-4 mr-3" />
                   Settings
+                </Button>
+              </li>
+              {subscriptionStatus === "professional" && (
+                <li>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-gray-600 hover:text-gray-800 hover:bg-gray-100 h-10 md:h-auto text-sm md:text-base"
+                    onClick={() => {
+                      router.push("/revenue-dashboard")
+                      if (isMobile) setSidebarOpen(false)
+                    }}
+                  >
+                    <TrendingUp className="h-4 w-4 mr-3" />
+                    Revenue Dashboard
+                  </Button>
+                </li>
+              )}
+              <li>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-gray-600 hover:text-gray-800 hover:bg-gray-100 h-10 md:h-auto text-sm md:text-base"
+                  onClick={() => {
+                    router.push("/pricing")
+                    if (isMobile) setSidebarOpen(false)
+                  }}
+                >
+                  <CreditCard className="h-4 w-4 mr-3" />
+                  {subscriptionStatus === "free" ? "Upgrade Plan" : "Manage Subscription"}
                 </Button>
               </li>
               <li className="pt-4">
@@ -732,9 +829,17 @@ export default function Dashboard() {
                               <Button
                                 className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-full px-4 md:px-6 shadow-lg transition-all hover:shadow-xl h-9 md:h-10 text-sm"
                                 onClick={() => handleStartChat(user.id)}
+                                disabled={subscriptionStatus === "free" && dailyMessageCount >= monthlyMessageLimit}
                               >
                                 <MessageCircle className="h-4 w-4 mr-2" />
-                                Chat
+                                {subscriptionStatus === "free" && dailyMessageCount >= monthlyMessageLimit ? (
+                                  <>
+                                    <Lock className="h-4 w-4 mr-2" />
+                                    Upgrade to Chat
+                                  </>
+                                ) : (
+                                  "Chat"
+                                )}
                               </Button>
                               <Button
                                 variant="outline"

@@ -2,10 +2,17 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Heart, MapPin, MessageCircle, Users, ArrowRight, User, MoreHorizontal } from "lucide-react"
+import { Heart, MapPin, MessageCircle, Users, ArrowRight, User, MoreHorizontal, X } from "lucide-react"
 import Link from "next/link"
+import { useState } from "react"
 
 export default function LandingPage() {
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const toggleModal = () => {
+    setIsModalOpen(!isModalOpen)
+  }
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
@@ -17,34 +24,36 @@ export default function LandingPage() {
             </div>
             <span className="text-xl font-semibold">TalkNest</span>
           </div>
-          <nav className="hidden md:flex items-left space-x-8">
-            <a href="#features" className="text-white/90 hover:text-white transition-colors">
-              Features
-            </a>
-            <a href="#how-it-works" className="text-white/90 hover:text-white transition-colors">
-              How It Works
-            </a>
-            <a href="#safety" className="text-white/90 hover:text-white transition-colors">
-              Safety
-            </a>
-          </nav>
-          <Link href="/auth">
-            <Button className="bg-white text-purple-600 hover:bg-white/90 rounded-full px-6">Sign In</Button>
-          </Link>
+          <div className="flex items-center space-x-4">
+            <nav className="flex items-center space-x-6">
+              <a href="#features" className="text-white/90 hover:text-white transition-colors text-sm">
+                Features
+              </a>
+              <a href="#how-it-works" className="text-white/90 hover:text-white transition-colors text-sm">
+                How It Works
+              </a>
+              <a href="#safety" className="text-white/90 hover:text-white transition-colors text-sm">
+                Safety
+              </a>
+            </nav>
+            <Link href="/auth">
+              <Button className="bg-white text-purple-600 hover:bg-white/90 rounded-full px-6">Sign In</Button>
+            </Link>
+          </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-purple-500 via-purple-600 to-pink-500 text-white py-20">
+      <section className="bg-gradient-to-br from-purple-500 via-purple-600 to-pink-500 text-white min-h-screen flex items-center py-10">
         <div className="container mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <h1 className="text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-                Find Emotional
+                Your digital shoulder 
                 <br />
-                Support
+                to lean on when you 
                 <br />
-                Nearby
+                need it most.
               </h1>
               <p className="text-xl text-white/90 mb-8 leading-relaxed">
                 Connect with caring individuals in your area who understand what you're going through.
@@ -60,8 +69,8 @@ export default function LandingPage() {
                 </Link>
                 <Button
                   size="lg"
-                  variant="outline"
                   className="bg-white text-purple-600 hover:bg-white/90 rounded-full px-8 py-4 text-lg font-semibold"
+                  onClick={toggleModal}
                 >
                   Learn More
                 </Button>
@@ -95,6 +104,51 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
+
+        {/* Learn More Modal */}
+        {isModalOpen && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">Learn More About TalkNest</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="p-0 h-8 w-8"
+                  onClick={toggleModal}
+                >
+                  <X className="h-5 w-5 text-gray-600" />
+                </Button>
+              </div>
+              <div className="space-y-4 text-gray-600">
+                <p>
+                  TalkNest is your platform for finding emotional support and building meaningful connections with people nearby. Whether you're feeling happy, anxious, or just need someone to talk to, our community is here for you.
+                </p>
+                <p>
+                  <strong>Why Choose TalkNest?</strong>
+                </p>
+                <ul className="list-disc pl-5 space-y-2">
+                  <li>Connect with people within 100-200 meters who share your interests or mood.</li>
+                  <li>Enjoy secure, end-to-end encrypted chats with AI moderation for safety.</li>
+                  <li>Arrange safe meetups in public spaces with verified users.</li>
+                  <li>Express yourself through mood tags and personalized profiles.</li>
+                </ul>
+                <p>
+                  Join TalkNest today to start your journey toward emotional well-being and community support.
+                </p>
+              </div>
+              <div className="mt-6 flex justify-end">
+                <Link href="/auth">
+                  <Button
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 rounded-full px-6"
+                  >
+                    Get Started
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* How TalkNest Helps You */}
@@ -300,7 +354,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 TalkNest. All rights reserved. Made with ❤️ for emotional well-being.</p>
+            <p>© 2024 TalkNest. All rights reserved. Made with ❤️ for emotional well-being.</p>
           </div>
         </div>
       </footer>
